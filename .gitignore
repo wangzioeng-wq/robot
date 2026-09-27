@@ -1,0 +1,26 @@
+# Build
+build/
+out/
+
+# C/C++
+*.o
+*.a
+*.so
+*.elf
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets
+.env
+*.key
+*.pem
