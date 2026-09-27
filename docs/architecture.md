@@ -1,35 +1,39 @@
-# Architecture / 架构说明
+# 架构说明
 
-The robot runs as one Python process on Python 3.8.10. Startup begins at python3 -m robot.app.main.
+程序运行在 RK3566 开发板的 Python 3.8 环境中，以单进程方式启动：
 
-## Request flow / 请求流程
+~~~bash
+python3 -m robot.app.main
+~~~
 
-    CLI（交互层）
-      -> VoiceChatService（业务服务）
-          -> STTProvider（语音识别适配器） -> AudioDriver（音频驱动封装）
-          -> ChatAgent（聊天智能体）
-              -> LLMProvider（大模型接口） -> QwenProvider（千问适配器）
-              -> Memory（短期记忆） -> InMemoryMemory（内存实现）
-          -> TTSProvider（语音合成接口） -> DoubaoTTSProvider（豆包适配器）
-          -> AudioDriver（音频驱动封装）
+## 语音处理流程
 
-## Responsibilities / 职责
+~~~text
+命令行交互
+  -> VoiceChatService
+      -> DoubaoSTTProvider -> AudioDriver（麦克风采集）
+      -> ChatAgent -> QwenProvider
+                   -> InMemoryMemory（短期对话记忆）
+      -> DoubaoTTSProvider
+      -> AudioDriver（扬声器播放）
+~~~
 
-- App（应用入口）: app/main.py starts the CLI; app/bootstrap.py manually builds dependencies.
-- Agent（智能体）: agent/chat_agent.py combines the system prompt, conversation memory, and an LLM reply. It has no provider, network, audio, or hardware details.
-- Provider（服务适配器）: providers/llm, providers/stt, and providers/tts define small interfaces and implement Qwen and Doubao API calls.
-- Service（业务服务）: services/voice_chat.py coordinates live recognition, chat, synthesis, and playback.
-- Memory（记忆）: memory/in_memory.py keeps the latest six user/assistant turns in RAM.
-- Driver（硬件驱动封装）: drivers/audio.py captures and plays PCM through arecord and aplay.
-- Interface（交互层）: interfaces/cli.py shows transcript progress, replies, and turn errors.
-- Core（基础模块）: core/config.py, core/logging.py, and core/exceptions.py centralize settings, safe logs, and recoverable errors.
-- Tools（工具） and Skills（技能）: reserved for later; neither is implemented or called by this application.
-- State（机器人状态）: reserved for later; no state manager is implemented.
+## 模块职责
 
-## Live audio / 实时音频
+- robot/app/：初始化日志、创建依赖并启动命令行。
+- robot/agent/：组合系统提示词、对话记忆和大模型接口，不处理网络或硬件细节。
+- robot/providers/：定义服务接口，并封装 Qwen、豆包语音识别和豆包语音合成请求。
+- robot/services/：按一轮对话的顺序协调识别、回复生成、语音合成和播放。
+- robot/memory/：只在当前进程内保存最近若干轮用户和助手消息。
+- robot/drivers/：通过 arecord 和 aplay 采集、播放 PCM 音频。
+- robot/interfaces/：提供交互式命令行，显示识别文本、回复和本轮错误。
+- robot/core/：集中处理配置、日志和可恢复异常。
+- robot/tools/、robot/skills/：仅保留空包和说明文件，尚无工具或技能实现。
 
-The microphone provides mono, 16-bit, 16 kHz PCM in 200 ms chunks. DoubaoSTTProvider uploads audio while receiving interim recognition results and waits for a stable sentence and the service's final response package. The ASR VAD end window defaults to 800 ms. Playback uses mono, 16-bit, 24 kHz PCM on plughw:0,0.
+## 音频和记忆
 
-## Memory and error handling / 记忆与错误处理
+麦克风输入为单声道、16 位、16 kHz PCM，按 200 毫秒分块实时上传；识别端并行接收临时文本，并在检测到分句后收尾。VAD 结束窗口默认 800 毫秒。扬声器播放豆包返回的单声道、16 位、24 kHz PCM，默认设备为 plughw:0,0。
 
-The system prompt is applied by ChatAgent; only user and assistant messages are stored in memory. The oldest complete turns are dropped after six turns. Network, provider, and audio errors end the current turn and return control to the CLI.
+记忆默认保存最近 6 轮对话，仅包含用户和助手消息。系统提示词在每次模型请求时单独传入，不写入对话记忆。旧轮次按完整问答对清理。
+
+网络服务或音频设备出错时，当前轮会报告错误并返回命令行，用户可以重新发起下一轮。
