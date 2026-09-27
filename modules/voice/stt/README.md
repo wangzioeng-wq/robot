@@ -9,3 +9,4 @@ Audio PCM
 Speech Recognition
     ↓
 Text
+错误的STT代码
