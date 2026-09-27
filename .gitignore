@@ -24,3 +24,9 @@ out/
 .env
 *.key
 *.pem
+
+# Voice runtime files
+modules/voice/.env 
+modules/voice/output/ 
+modules/voice/samples/*.wav
+modules/voice/samples/*.pcm
