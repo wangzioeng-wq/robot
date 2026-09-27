@@ -1,32 +1,33 @@
-# Build
-build/
-out/
-
-# C/C++
-*.o
-*.a
-*.so
-*.elf
-
-# Logs
-*.log
-
-# Temporary
-*.tmp
-*.swp
-*~
-
-# IDE
-.vscode/
-.idea/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
 
 # Secrets
 .env
 *.key
 *.pem
 
-# Voice runtime files
-modules/voice/.env 
-modules/voice/output/ 
-modules/voice/samples/*.wav
-modules/voice/samples/*.pcm
+# Runtime audio and logs
+*.pcm
+*.log
+robot/runtime/
+output/
+
+# Build artifacts
+build/
+out/
+*.o
+*.a
+*.so
+*.elf
+
+# Editors
+.vscode/
+.idea/
+*.tmp
+*.swp
+*~
